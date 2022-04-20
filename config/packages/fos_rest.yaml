@@ -1,0 +1,19 @@
+# Read the documentation: https://symfony.com/doc/master/bundles/FOSRestBundle/index.html
+fos_rest:
+    param_fetcher_listener:  true
+    body_converter:
+      enabled: true
+      validate: true
+      validation_errors_argument: violations
+    view:
+      formats: { json: true, xml: false, rss: false }
+      view_response_listener:
+        enabled: true
+    serializer:
+      serialize_null: true
+    exception:
+      serializer_error_renderer: true
+    format_listener:
+      rules:
+        - { path: ^/api, prefer_extension: true, fallback_format: json, priorities: [ json ] }
+        - { path: ^/verify, prefer_extension: true, fallback_format: json, priorities: [ json ] }
