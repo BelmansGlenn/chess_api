@@ -33,6 +33,7 @@ class PlayerDTOCreate
     #[Assert\NotBlank]
     private string $plainPassword;
 
+
     /**
      * @return string
      */

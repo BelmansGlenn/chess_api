@@ -42,7 +42,7 @@ class PlayerController extends AbstractFOSRestController
     {
         try {
             $this->violationsService->checkPlayerIsUserConnected($this->getUser(),$player);
-            return  $this->playerControllerService->getPlayer($this->getUser(), $player);
+            return  $this->playerControllerService->getPlayer($player);
         }
         catch (PlayerNotUserConnectedException $e){
             throw new AccessDeniedException($e->getMessage());
@@ -73,10 +73,13 @@ class PlayerController extends AbstractFOSRestController
     #[View]
     public function deletePlayer(Player $player)
     {
-        $this->checkViolations->checkPlayerIsUserConnected($player);
+        try {
+        $this->violationsService->checkPlayerIsUserConnected($this->getUser(), $player);
 
-        $this->entityManager->delete($player);
-
+        $this->playerControllerService->deletePlayer($player);
+        }catch(PlayerNotUserConnectedException $e){
+            throw new AccessDeniedException($e->getMessage());
+        }
 
     }
 }

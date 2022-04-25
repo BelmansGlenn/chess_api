@@ -17,6 +17,11 @@ class FileUploadService
         $this->params = $params;
     }
 
+    public function defaultImg()
+    {
+        return $this->params->get('default_img_dir').'/default/player.png';
+    }
+
 
     public function uploadImgPlayer($file, $player)
     {
@@ -27,7 +32,7 @@ class FileUploadService
             if($imageType === 'jpeg' || $imageType === 'jpg' || $imageType === 'png')
             {
             $data = base64_decode($file);
-            $filePath = $this->params->get('player_img_dir').'/player'.$player->getId().'.'.$imageType;
+            $filePath = $this->params->get('player_img_dir').'/player'.$player->getId();
             file_put_contents($filePath, $data);
             return $filePath;
             }else{

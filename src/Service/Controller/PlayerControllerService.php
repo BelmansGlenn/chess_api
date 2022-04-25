@@ -3,34 +3,28 @@
 namespace App\Service\Controller;
 
 use App\DTO\Mapper\Player\PlayerSimpleDTOMapper;
-use App\Entity\Player;
+use App\Exception\CustomBadRequestException;
 use App\Service\EntityManager\EntityManagerService;
 use App\Service\EntityManager\PlayerEntityService;
-use App\Service\FileUpload\FileUploadService;
-use App\Service\Violations\ViolationsService;
 
 class PlayerControllerService
 {
     private PlayerEntityService $playerEntityService;
 
-    private FileUploadService $uploadService;
-
     private EntityManagerService $entityManagerService;
 
     /**
      * @param PlayerEntityService $playerEntityService
-     * @param FileUploadService $uploadService
      * @param EntityManagerService $entityManagerService
      */
-    public function __construct(PlayerEntityService $playerEntityService, FileUploadService $uploadService, EntityManagerService $entityManagerService)
+    public function __construct(PlayerEntityService $playerEntityService,  EntityManagerService $entityManagerService)
     {
         $this->playerEntityService = $playerEntityService;
-        $this->uploadService = $uploadService;
         $this->entityManagerService = $entityManagerService;
     }
 
 
-    public function getPlayer($user, $player)
+    public function getPlayer($player)
     {
         return PlayerSimpleDTOMapper::transformFromObject($player);
     }
@@ -42,10 +36,17 @@ class PlayerControllerService
             $this->playerEntityService->updatePlayer($player, $playerDTO);
 
             $this->entityManagerService->update();
-            return PlayerSimpleDTOMapper::transformFromObject($player);
+
+        }else{
+            throw new CustomBadRequestException('Already up to date');
         }
+        return PlayerSimpleDTOMapper::transformFromObject($player);
 
+    }
 
+    public function deletePlayer($player)
+    {
+        $this->entityManagerService->delete($player);
     }
 
 

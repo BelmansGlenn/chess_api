@@ -7,6 +7,7 @@ use App\DTO\Player\PlayerDTOUpdate;
 use App\Entity\Player;
 use App\Service\FileUpload\FileUploadService;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\DependencyInjection\ParameterBag\ContainerBagInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class PlayerEntityService
@@ -15,6 +16,7 @@ class PlayerEntityService
     private UserPasswordHasherInterface $passwordHasher;
 
     private FileUploadService $uploadService;
+
 
     /**
      * @param UserPasswordHasherInterface $passwordHasher
@@ -34,10 +36,8 @@ class PlayerEntityService
             ->setFirstname($dto->getFirstname())
             ->setLastname($dto->getLastname())
             ->setGender($dto->getGender())
-            ->setBirthday($dto->getBirthday());
-        if ($player->getImage()){
-            $player->setImage($dto->getImage());
-        }
+            ->setBirthday($dto->getBirthday())
+            ->setImage($this->uploadService->defaultImg());
         $player->setPassword($this->passwordHasher->hashPassword(
             $player, $dto->getPlainPassword())
         );

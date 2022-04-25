@@ -42,7 +42,7 @@ class ViolationsService
 
         if (!$object)
         {
-            throw new NotFoundHttpException();
+            throw new CustomBadRequestException();
         }
         return $object;
     }
@@ -60,7 +60,7 @@ class ViolationsService
         $player = $this->tournamentRepository->findPlayerByTournament($tournamentId, $playerId);
 
         if (!$player){
-            throw new AccessDeniedException('You cannot leave a tournament you didn\'t join');
+            throw new CustomBadRequestException('You cannot leave a tournament you didn\'t join');
         }
 
         return $player;

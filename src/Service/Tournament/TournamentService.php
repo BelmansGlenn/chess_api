@@ -5,6 +5,7 @@ namespace App\Service\Tournament;
 use App\Entity\Player;
 use App\Entity\Tournament;
 use App\Entity\TournamentCategory;
+use App\Exception\RulesTournamentException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 class TournamentService
@@ -14,19 +15,19 @@ class TournamentService
     public function canPlay($player, Tournament $tournament)
     {
         if (count($tournament->getPlayers()) >= $tournament->getMaxPlayer()) {
-            return false;
+            throw new RulesTournamentException('The tournament is already full.');
         }
 
         if (in_array($player, $tournament->getPlayers()->toArray())) {
-            return false;
+            throw new RulesTournamentException('You are already registered.');
         }
 
         if (new \DateTime() >= $tournament->getStartedAt()) {
-            return false;
+            throw new RulesTournamentException('The tournament has already started.');
         }
 
         if (($player->getElo() < $tournament->getEloMin()) || ($player->getElo() > $tournament->getEloMax())) {
-            return false;
+            throw new RulesTournamentException('Your elo doesn\'t match the elo requested.');
         }
 
         if (empty(array_filter($tournament->getCategories(), function ($category) use ($player, $tournament) {
@@ -40,10 +41,10 @@ class TournamentService
                 case TournamentCategory::VETERAN:
                     return $age >= 60;
                 default:
-                    return false;
+                    throw new RulesTournamentException('This category doesn\'t exist.');
             }
         }))) {
-            return false;
+            throw new RulesTournamentException('You don\'t have the right age to be part of this category.');
         }
         return true;
     }

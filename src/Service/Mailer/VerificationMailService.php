@@ -3,6 +3,8 @@
 namespace App\Service\Mailer;
 
 use App\Entity\Player;
+use App\Exception\CustomBadRequestException;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use SymfonyCasts\Bundle\VerifyEmail\VerifyEmailHelperInterface;
@@ -43,7 +45,12 @@ class VerificationMailService
     See you soon!
 </p>', $signatureComponents->getSignedUrl())
             );
-        $this->mailer->send($email);
+        try {
+            $this->mailer->send($email);
+        }catch (TransportExceptionInterface $e)
+        {
+            throw new CustomBadRequestException($e);
+        }
     }
 
 

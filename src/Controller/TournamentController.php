@@ -2,16 +2,10 @@
 
 namespace App\Controller;
 
-use App\DTO\Mapper\Player\PlayerSimpleDTOMapper;
-use App\DTO\Mapper\Tournament\TournamentFullDTOMapper;
-use App\DTO\Mapper\Tournament\TournamentSimpleDTOMapper;
 use App\Entity\Tournament;
-use App\Repository\PlayerRepository;
-use App\Repository\TournamentRepository;
-use App\Service\EntityManager\EntityManagerService;
-use App\Service\EntityManager\TournamentEntityService;
-use App\Service\Pagination\PaginationService;
-use App\Service\Tournament\TournamentService;
+use App\Exception\CustomBadRequestException;
+use App\Exception\RulesTournamentException;
+use App\Service\Controller\TournamentControllerService;
 use App\Service\Violations\ViolationsService;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
 use FOS\RestBundle\Controller\Annotations\Get;
@@ -21,6 +15,7 @@ use FOS\RestBundle\Controller\Annotations\View;
 use FOS\RestBundle\Request\ParamFetcherInterface;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
+use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -29,24 +24,16 @@ class TournamentController extends AbstractFOSRestController
 {
     private ViolationsService $checkViolations;
 
-    private EntityManagerService $entityManager;
-
-    private TournamentService $tournamentService;
-
-    private TournamentEntityService $tournamentEntity;
+    private TournamentControllerService $tournamentControllerService;
 
     /**
      * @param ViolationsService $checkViolations
-     * @param EntityManagerService $entityManager
-     * @param TournamentService $tournamentService
-     * @param TournamentEntityService $tournamentEntity
+     * @param TournamentControllerService $tournamentControllerService
      */
-    public function __construct(ViolationsService $checkViolations, EntityManagerService $entityManager, TournamentService $tournamentService, TournamentEntityService $tournamentEntity)
+    public function __construct(ViolationsService $checkViolations, TournamentControllerService $tournamentControllerService)
     {
         $this->checkViolations = $checkViolations;
-        $this->entityManager = $entityManager;
-        $this->tournamentService = $tournamentService;
-        $this->tournamentEntity = $tournamentEntity;
+        $this->tournamentControllerService = $tournamentControllerService;
     }
 
 
@@ -56,11 +43,14 @@ class TournamentController extends AbstractFOSRestController
     #[ParamConverter("tournament", converter: "fos_rest.request_body")]
     public function createTournament(Tournament $tournament, ConstraintViolationList $violations)
     {
-        $this->checkViolations->checkViolation($violations);
+        try {
+            $this->checkViolations->checkViolation($violations);
+            return $this->tournamentControllerService->createTournament($tournament);
+        }catch(CustomBadRequestException $e)
+        {
+            throw new BadRequestException($e);
+        }
 
-        $this->entityManager->create($tournament);
-
-        return TournamentSimpleDTOMapper::transformFromObject($tournament);
     }
 
     #[Get('/api/tournament/{id}', name: 'app_tournament_get')]
@@ -68,8 +58,7 @@ class TournamentController extends AbstractFOSRestController
     public function getTournament(Tournament $tournament)
     {
         $this->checkViolations->checkIfExist($tournament->getId(), Tournament::class);
-
-        return TournamentSimpleDTOMapper::transformFromObject($tournament);
+        return $this->tournamentControllerService->getTournament($tournament);
     }
 
 
@@ -80,10 +69,9 @@ class TournamentController extends AbstractFOSRestController
     #[QueryParam(name: "limit",requirements: "\d+", default: "5", description: "Max number of articles per page")]
     #[QueryParam(name: "offset",requirements: "\d+", default: "1", description: "the pagination offset")]
     #[View(statusCode: 200)]
-    public function getAllTournaments(ParamFetcherInterface $paramFetcher, TournamentRepository $repository, Request $request)
+    public function getAllTournaments(ParamFetcherInterface $paramFetcher, Request $request)
     {
-
-        return PaginationService::paginate($repository, $paramFetcher, $request, fn($it) => TournamentSimpleDTOMapper::transformFromObject($it));
+        $this->tournamentControllerService->getAllTournaments($paramFetcher, $request);
     }
 
     #[Get('/api/tournament/{id}/players', name: 'app_tournament')]
@@ -92,46 +80,50 @@ class TournamentController extends AbstractFOSRestController
     #[QueryParam(name: "limit",requirements: "\d+", default: "5", description: "Max number of articles per page")]
     #[QueryParam(name: "offset",requirements: "\d+", default: "1", description: "the pagination offset")]
     #[View(statusCode: 200)]
-    public function getPlayersTournament(Tournament $tournament, ParamFetcherInterface $paramFetcher, PlayerRepository $repository, Request $request)
+    public function getPlayersTournament(Tournament $tournament, ParamFetcherInterface $paramFetcher,Request $request)
     {
-        $tournament = $this->checkViolations->checkIfExist($tournament->getId(), Tournament::class);
+        try {
 
+            $this->checkViolations->checkIfExist($tournament->getId(), Tournament::class);
+            return $this->tournamentControllerService->getPlayersTournament($paramFetcher, $request, $tournament);
 
-        return PaginationService::paginate($repository, $paramFetcher, $request, fn($it) => PlayerSimpleDTOMapper::transformFromObject($it), ['id' => $tournament->getId()]);
+        }catch (CustomBadRequestException $e){
+            throw new BadRequestException($e);
+        }
+
     }
 
     #[Get('/api/tournament/join/{id}', name: 'app_tournament_join')]
     #[View(statusCode: 201)]
     public function joinTournament(Tournament $tournament)
     {
+        try {
         $this->checkViolations->checkIfExist($tournament->getId(), Tournament::class);
-
-        $canPlay = $this->tournamentService->canPlay($this->getUser(), $tournament);
-
-        if ($canPlay === true)
+        return $this->tournamentControllerService->joinTournament($this->getUser(), $tournament);
+        }catch(CustomBadRequestException $e)
         {
-            $this->tournamentEntity->addPlayerToTournament($this->getUser(), $tournament);
-            $this->entityManager->update();
-        }
-        else
+            throw new BadRequestException($e);
+        }catch (RulesTournamentException $e)
         {
-            throw new AccessDeniedException('You don\'t meet the requirements for this tournament');
+            throw new AccessDeniedException($e);
         }
-
-        return TournamentSimpleDTOMapper::transformFromObject($tournament);
     }
 
     #[Get('/api/tournament/leave/{id}', name: 'app_tournament_leave')]
     #[View(statusCode: 201)]
     public function leaveTournament(Tournament $tournament)
     {
-        $this->checkViolations->checkIfExist($tournament->getId(), Tournament::class);
+        try {
+            $this->checkViolations->checkIfExist($tournament->getId(), Tournament::class);
 
-        $this->checkViolations->checkPlayerIsInTournament($tournament->getId(), $this->getUser()->getId());
+            $this->checkViolations->checkPlayerIsInTournament($tournament->getId(), $this->getUser()->getId());
 
-        $this->tournamentEntity->removePlayerFromTournament($this->getUser(), $tournament);
+            return $this->tournamentControllerService->leaveTournament($this->getUser(), $tournament);
+        }catch (CustomBadRequestException $e)
+        {
+            throw new BadRequestException($e);
+        }
 
-        return TournamentSimpleDTOMapper::transformFromObject($tournament);
     }
 
 
