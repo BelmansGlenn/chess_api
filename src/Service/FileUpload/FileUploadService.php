@@ -19,7 +19,7 @@ class FileUploadService
 
     public function defaultImg()
     {
-        return $this->params->get('default_img_dir').'/default/player.png';
+        return $this->params->get('default_img_dir').'/default/player';
     }
 
 

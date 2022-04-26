@@ -4,6 +4,7 @@ namespace App\Service\Violations;
 
 use App\Exception\CustomBadRequestException;
 use App\Exception\PlayerNotUserConnectedException;
+use App\Repository\PlayerRepository;
 use App\Repository\TournamentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -13,15 +14,18 @@ class ViolationsService
 {
     private EntityManagerInterface $entityManager;
     private TournamentRepository $tournamentRepository;
+    private PlayerRepository $playerRepository;
 
     /**
      * @param EntityManagerInterface $entityManager
      * @param TournamentRepository $tournamentRepository
+     * @param PlayerRepository $playerRepository
      */
-    public function __construct(EntityManagerInterface $entityManager, TournamentRepository $tournamentRepository)
+    public function __construct(EntityManagerInterface $entityManager, TournamentRepository $tournamentRepository, PlayerRepository $playerRepository)
     {
         $this->entityManager = $entityManager;
         $this->tournamentRepository = $tournamentRepository;
+        $this->playerRepository = $playerRepository;
     }
 
 
@@ -38,32 +42,33 @@ class ViolationsService
 
     public function checkIfExist($id, $class)
     {
-        $object = $this->entityManager->getRepository($class)->find($id);
-
-        if (!$object)
+        $result = $this->entityManager->getRepository($class)->find($id);
+        if ($result === null)
         {
             throw new CustomBadRequestException();
         }
-        return $object;
+        return $result;
     }
 
-    public function checkPlayerIsUserConnected($user, $player)
+    public function checkPlayerIsUserConnected($user, $playerId)
     {
+        $player = $this->playerRepository->find($playerId);
         if ($user !== $player)
         {
             throw new PlayerNotUserConnectedException();
         }
+        return $player;
     }
 
     public function checkPlayerIsInTournament($tournamentId,$playerId){
 
-        $player = $this->tournamentRepository->findPlayerByTournament($tournamentId, $playerId);
+        $result = $this->tournamentRepository->findOnePlayerByTournament($tournamentId, $playerId);
 
-        if (!$player){
-            throw new CustomBadRequestException('You cannot leave a tournament you didn\'t join');
+        if ($result === null){
+            return false;
+        }else{
+            return true;
         }
-
-        return $player;
     }
 
 

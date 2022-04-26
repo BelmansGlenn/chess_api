@@ -51,7 +51,8 @@ final class PlayerFactory extends ModelFactory
             'isVerified' => true,
             'birthday' => self::faker()->datetime(),
             'gender' => self::faker()->randomElement(['m','f']),
-            'elo' => 1000
+            'elo' => 1000,
+            'image' => "/Users/glennbelmans/glenn/Dev_php/symfony/chess_api/public/images/default/default/player"
         ];
     }
 

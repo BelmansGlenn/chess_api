@@ -7,6 +7,7 @@ use App\Entity\Player;
 use App\Exception\CustomBadRequestException;
 use App\Service\EntityManager\EntityManagerService;
 use App\Service\EntityManager\PlayerEntityService;
+use App\Service\FileUpload\FileUploadService;
 use App\Service\Mailer\VerificationMailService;
 use SymfonyCasts\Bundle\VerifyEmail\Exception\VerifyEmailExceptionInterface;
 
@@ -19,12 +20,14 @@ class RegisterControllerService
 
     private VerificationMailService $verificationMailService;
 
+
     /**
      * @param PlayerEntityService $playerEntityService
      * @param EntityManagerService $entityManagerService
      * @param VerificationMailService $verificationMailService
+     * @param FileUploadService $uploadService
      */
-    public function __construct(PlayerEntityService $playerEntityService, EntityManagerService $entityManagerService, VerificationMailService $verificationMailService)
+    public function __construct(PlayerEntityService $playerEntityService, EntityManagerService $entityManagerService, VerificationMailService $verificationMailService, FileUploadService $uploadService)
     {
         $this->playerEntityService = $playerEntityService;
         $this->entityManagerService = $entityManagerService;

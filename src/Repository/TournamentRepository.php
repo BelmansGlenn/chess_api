@@ -116,8 +116,19 @@ class TournamentRepository extends ServiceEntityRepository implements SearchInte
         return $qb->getQuery()->getSingleScalarResult();
     }
 
+    public function findIfExist($id)
+    {
+        $qb = $this
+            ->createQueryBuilder('t')
+            ->select('t.id')
+            ->andWhere('t.id = :val')
+            ->setParameter('val', $id);
 
-    public function findPlayerByTournament($id, $userId)
+        return $qb->getQuery()->getOneOrNullResult();
+
+    }
+
+    public function findOnePlayerByTournament($id, $userId)
     {
         $qb = $this
             ->createQueryBuilder('t')
@@ -127,8 +138,9 @@ class TournamentRepository extends ServiceEntityRepository implements SearchInte
             ->andWhere('players.id = :user')
             ->select('players.id')
             ->setParameter('user', $userId);
-
-        return $qb->getQuery()->getResult();
+        return $qb->getQuery()->getOneOrNullResult();
     }
+
+
 
 }

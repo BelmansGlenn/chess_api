@@ -14,6 +14,7 @@ class TournamentService
 
     public function canPlay($player, Tournament $tournament)
     {
+
         if (count($tournament->getPlayers()) >= $tournament->getMaxPlayer()) {
             throw new RulesTournamentException('The tournament is already full.');
         }
@@ -29,6 +30,18 @@ class TournamentService
         if (($player->getElo() < $tournament->getEloMin()) || ($player->getElo() > $tournament->getEloMax())) {
             throw new RulesTournamentException('Your elo doesn\'t match the elo requested.');
         }
+        $hasRightGender = false;
+        foreach ($tournament->getGender() as $gender) {
+            $gender = get_object_vars($gender);
+            if (in_array($player->getGender(), $gender) == true)
+            {
+                $hasRightGender = true;
+            }
+        }
+        if ($hasRightGender === false) {
+            throw new RulesTournamentException('You don\'t have the right gender to participate at this tournament');
+        }
+
 
         if (empty(array_filter($tournament->getCategories(), function ($category) use ($player, $tournament) {
             // age du joueur au moment du tournoi

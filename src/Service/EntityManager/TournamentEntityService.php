@@ -3,6 +3,8 @@
 namespace App\Service\EntityManager;
 
 use App\Entity\Tournament;
+use App\Exception\CustomBadRequestException;
+use App\Repository\TournamentRepository;
 
 class TournamentEntityService
 {
@@ -19,14 +21,14 @@ class TournamentEntityService
 
     public function addPlayerToTournament($player, $tournament)
     {
-        $tournament = $tournament->addPlayer($player);
-        return $tournament;
+        $tournament->addPlayer($player);
+        $this->entityManagerService->update();
     }
 
-    public function removePlayerFromTournament($player, $tournament)
+    public function removePlayerFromTournament($playerId, $tournament)
     {
-        $tournament = $tournament->removePlayer($player);
-        return $tournament;
+        $tournament->removePlayer($playerId);
+        $this->entityManagerService->update();
     }
 
 

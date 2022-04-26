@@ -56,9 +56,13 @@ class Tournament
     #[ORM\Column(type: 'boolean')]
     private $isFinished = false;
 
+    #[ORM\OneToMany(mappedBy: 'tournament', targetEntity: TournamentMatch::class)]
+    private $tournamentMatches;
+
     public function __construct()
     {
         $this->players = new ArrayCollection();
+        $this->tournamentMatches = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -198,6 +202,36 @@ class Tournament
     public function setIsFinished(bool $isFinished): self
     {
         $this->isFinished = $isFinished;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, TournamentMatch>
+     */
+    public function getTournamentMatches(): Collection
+    {
+        return $this->tournamentMatches;
+    }
+
+    public function addTournamentMatch(TournamentMatch $tournamentMatch): self
+    {
+        if (!$this->tournamentMatches->contains($tournamentMatch)) {
+            $this->tournamentMatches[] = $tournamentMatch;
+            $tournamentMatch->setTournament($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTournamentMatch(TournamentMatch $tournamentMatch): self
+    {
+        if ($this->tournamentMatches->removeElement($tournamentMatch)) {
+            // set the owning side to null (unless already changed)
+            if ($tournamentMatch->getTournament() === $this) {
+                $tournamentMatch->setTournament(null);
+            }
+        }
 
         return $this;
     }

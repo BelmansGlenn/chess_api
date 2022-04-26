@@ -7,8 +7,11 @@ use App\Exception\CustomBadRequestException;
 use App\Exception\RulesTournamentException;
 use App\Service\Controller\TournamentControllerService;
 use App\Service\Violations\ViolationsService;
+use Doctrine\ORM\EntityManagerInterface;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
+use FOS\RestBundle\Controller\Annotations\Delete;
 use FOS\RestBundle\Controller\Annotations\Get;
+use FOS\RestBundle\Controller\Annotations\Patch;
 use FOS\RestBundle\Controller\Annotations\Post;
 use FOS\RestBundle\Controller\Annotations\QueryParam;
 use FOS\RestBundle\Controller\Annotations\View;
@@ -54,10 +57,10 @@ class TournamentController extends AbstractFOSRestController
     }
 
     #[Get('/api/tournament/{id}', name: 'app_tournament_get')]
-    #[View(statusCode: 201)]
-    public function getTournament(Tournament $tournament)
+    #[View(statusCode: 200)]
+    public function getTournament($id)
     {
-        $this->checkViolations->checkIfExist($tournament->getId(), Tournament::class);
+        $tournament = $this->checkViolations->checkIfExist($id, Tournament::class);
         return $this->tournamentControllerService->getTournament($tournament);
     }
 
@@ -71,7 +74,7 @@ class TournamentController extends AbstractFOSRestController
     #[View(statusCode: 200)]
     public function getAllTournaments(ParamFetcherInterface $paramFetcher, Request $request)
     {
-        $this->tournamentControllerService->getAllTournaments($paramFetcher, $request);
+        return $this->tournamentControllerService->getAllTournaments($paramFetcher, $request);
     }
 
     #[Get('/api/tournament/{id}/players', name: 'app_tournament')]
@@ -80,12 +83,12 @@ class TournamentController extends AbstractFOSRestController
     #[QueryParam(name: "limit",requirements: "\d+", default: "5", description: "Max number of articles per page")]
     #[QueryParam(name: "offset",requirements: "\d+", default: "1", description: "the pagination offset")]
     #[View(statusCode: 200)]
-    public function getPlayersTournament(Tournament $tournament, ParamFetcherInterface $paramFetcher,Request $request)
+    public function getPlayersTournament($id, ParamFetcherInterface $paramFetcher,Request $request)
     {
         try {
 
-            $this->checkViolations->checkIfExist($tournament->getId(), Tournament::class);
-            return $this->tournamentControllerService->getPlayersTournament($paramFetcher, $request, $tournament);
+            $this->checkViolations->checkIfExist($id, Tournament::class);
+            return $this->tournamentControllerService->getPlayersTournament($paramFetcher, $request, $id);
 
         }catch (CustomBadRequestException $e){
             throw new BadRequestException($e);
@@ -93,13 +96,18 @@ class TournamentController extends AbstractFOSRestController
 
     }
 
-    #[Get('/api/tournament/join/{id}', name: 'app_tournament_join')]
+    #[Patch('/api/tournament/join/{id}', name: 'app_tournament_join')]
     #[View(statusCode: 201)]
-    public function joinTournament(Tournament $tournament)
+    public function joinTournament($id)
     {
         try {
-        $this->checkViolations->checkIfExist($tournament->getId(), Tournament::class);
-        return $this->tournamentControllerService->joinTournament($this->getUser(), $tournament);
+            $tournament = $this->checkViolations->checkIfExist($id, Tournament::class);
+            $result = $this->checkViolations->checkPlayerIsInTournament($id, $this->getUser()->getId());
+            if ($result === true)
+            {
+                throw new BadRequestException('Already in this tournament.');
+            }
+            return $this->tournamentControllerService->joinTournament($this->getUser(), $tournament);
         }catch(CustomBadRequestException $e)
         {
             throw new BadRequestException($e);
@@ -109,16 +117,20 @@ class TournamentController extends AbstractFOSRestController
         }
     }
 
-    #[Get('/api/tournament/leave/{id}', name: 'app_tournament_leave')]
-    #[View(statusCode: 201)]
-    public function leaveTournament(Tournament $tournament)
+    #[Patch('/api/tournament/leave/{id}', name: 'app_tournament_leave')]
+    #[View(statusCode: 204)]
+    public function leaveTournament($id)
     {
         try {
-            $this->checkViolations->checkIfExist($tournament->getId(), Tournament::class);
+            $tournament = $this->checkViolations->checkIfExist($id, Tournament::class);
+            $result = $this->checkViolations->checkPlayerIsInTournament($id, $this->getUser()->getId());
+            if ($result === false)
+            {
+                throw new BadRequestException('Cannot leave a tournament you didn\'t join.');
+            }
 
-            $this->checkViolations->checkPlayerIsInTournament($tournament->getId(), $this->getUser()->getId());
+            $this->tournamentControllerService->leaveTournament($this->getUser(), $tournament);
 
-            return $this->tournamentControllerService->leaveTournament($this->getUser(), $tournament);
         }catch (CustomBadRequestException $e)
         {
             throw new BadRequestException($e);

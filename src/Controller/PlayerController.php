@@ -37,11 +37,11 @@ class PlayerController extends AbstractFOSRestController
 
 
     #[Get('/api/player/{id}', name: 'app_player', requirements: ['id ' => "\d+"])]
-    #[View]
-    public function getPlayer(Player $player)
+    #[View(statusCode: 200)]
+    public function getPlayer($id)
     {
         try {
-            $this->violationsService->checkPlayerIsUserConnected($this->getUser(),$player);
+            $player = $this->violationsService->checkPlayerIsUserConnected($this->getUser(),$id);
             return  $this->playerControllerService->getPlayer($player);
         }
         catch (PlayerNotUserConnectedException $e){
@@ -51,12 +51,12 @@ class PlayerController extends AbstractFOSRestController
     }
 
     #[Patch('/api/player/{id}', name: 'app_player_update', requirements: ['id ' => "\d+"])]
-    #[View]
+    #[View(statusCode: 200)]
     #[ParamConverter("playerDTO", converter: "fos_rest.request_body")]
-    public function updatePlayer(Player $player, PlayerDTOUpdate $playerDTO, Request $request, ConstraintViolationList $violations)
+    public function updatePlayer($id, PlayerDTOUpdate $playerDTO, ConstraintViolationList $violations)
     {
         try {
-            $this->violationsService->checkPlayerIsUserConnected($this->getUser(), $player);
+            $player = $this->violationsService->checkPlayerIsUserConnected($this->getUser(), $id);
             $this->violationsService->checkViolation($violations);
             return $this->playerControllerService->updatePlayer($player, $playerDTO);
         }catch (PlayerNotUserConnectedException $e)
@@ -70,13 +70,14 @@ class PlayerController extends AbstractFOSRestController
     }
 
     #[Delete('/api/player/{id}', name: 'app_player_delete', requirements: ['id ' => "\d+"])]
-    #[View]
-    public function deletePlayer(Player $player)
+    #[View(statusCode: 204)]
+    public function deletePlayer($id)
     {
         try {
-        $this->violationsService->checkPlayerIsUserConnected($this->getUser(), $player);
+            $player = $this->violationsService->checkPlayerIsUserConnected($this->getUser(), $id);
 
-        $this->playerControllerService->deletePlayer($player);
+            $this->playerControllerService->deletePlayer($player);
+
         }catch(PlayerNotUserConnectedException $e){
             throw new AccessDeniedException($e->getMessage());
         }

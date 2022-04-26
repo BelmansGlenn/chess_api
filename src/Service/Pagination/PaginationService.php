@@ -22,7 +22,8 @@ class PaginationService
         $data = array_map($mapper, $pager);
         $count = $repo->countValue($option);
 
-        $countPage = round($count/$limit, 0, PHP_ROUND_HALF_UP);
+        $countPage = ceil($count/$limit);
+
         $offsetPrev = $paramFetcher->get('offset') - $limit;
 
         $offsetNext = $paramFetcher->get("offset") + $limit;

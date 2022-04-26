@@ -5,7 +5,9 @@ namespace App\Service\Controller;
 use App\DTO\Mapper\Player\PlayerSimpleDTOMapper;
 use App\DTO\Mapper\Tournament\TournamentSimpleDTOMapper;
 use App\Entity\Tournament;
+use App\Exception\CustomBadRequestException;
 use App\Exception\RulesTournamentException;
+use App\Repository\PlayerRepository;
 use App\Repository\TournamentRepository;
 use App\Service\EntityManager\EntityManagerService;
 use App\Service\EntityManager\TournamentEntityService;
@@ -18,19 +20,22 @@ class TournamentControllerService
     private TournamentRepository $tournamentRepository;
     private TournamentService $tournamentService;
     private TournamentEntityService $tournamentEntityService;
+    private PlayerRepository $playerRepository;
 
     /**
      * @param EntityManagerService $entityManagerService
      * @param TournamentRepository $tournamentRepository
      * @param TournamentService $tournamentService
      * @param TournamentEntityService $tournamentEntityService
+     * @param PlayerRepository $playerRepository
      */
-    public function __construct(EntityManagerService $entityManagerService, TournamentRepository $tournamentRepository, TournamentService $tournamentService, TournamentEntityService $tournamentEntityService)
+    public function __construct(EntityManagerService $entityManagerService, TournamentRepository $tournamentRepository, TournamentService $tournamentService, TournamentEntityService $tournamentEntityService, PlayerRepository $playerRepository)
     {
         $this->entityManagerService = $entityManagerService;
         $this->tournamentRepository = $tournamentRepository;
         $this->tournamentService = $tournamentService;
         $this->tournamentEntityService = $tournamentEntityService;
+        $this->playerRepository = $playerRepository;
     }
 
 
@@ -51,15 +56,16 @@ class TournamentControllerService
         return PaginationService::paginate($this->tournamentRepository, $paramFetcher, $request, fn($it) => TournamentSimpleDTOMapper::transformFromObject($it));
     }
 
-    public function getPlayersTournament($paramFetcher, $request, Tournament $tournament)
+    public function getPlayersTournament($paramFetcher, $request, $tournamentId)
     {
-        return PaginationService::paginate($this->tournamentRepository, $paramFetcher, $request, fn($it) => PlayerSimpleDTOMapper::transformFromObject($it), ['id' => $tournament->getId()]);
+
+        return PaginationService::paginate($this->playerRepository, $paramFetcher, $request, fn($it) => PlayerSimpleDTOMapper::transformFromObject($it), ['id' => $tournamentId]);
     }
 
     public function joinTournament($player, $tournament)
     {
         try {
-        $canPlay = $this->tournamentService->canPlay($player, $tournament);
+            $canPlay = $this->tournamentService->canPlay($player, $tournament);
         if ($canPlay === true )
         {
             $this->tournamentEntityService->addPlayerToTournament($player, $tournament);
@@ -76,7 +82,6 @@ class TournamentControllerService
     public function leaveTournament($player, $tournament)
     {
         $this->tournamentEntityService->removePlayerFromTournament($player, $tournament);
-        return TournamentSimpleDTOMapper::transformFromObject($tournament);
     }
 
 }
