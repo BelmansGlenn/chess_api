@@ -16,7 +16,7 @@ class TournamentMatch
     #[ORM\Column(type: 'integer')]
     private $round;
 
-    #[ORM\Column(type: 'string', length: 255, enumType: MatchResultEnum::class)]
+    #[ORM\Column(type: 'string',  enumType: MatchResultEnum::class)]
     private $result;
 
     #[ORM\ManyToOne(targetEntity: Player::class)]
@@ -48,17 +48,21 @@ class TournamentMatch
         return $this;
     }
 
-    public function getResult(): ?string
+
+    public function getResult(): MatchResultEnum
     {
         return $this->result;
     }
 
-    public function setResult(string $result): self
+
+    public function setResult(MatchResultEnum $result): self
     {
         $this->result = $result;
 
         return $this;
     }
+
+
 
     public function getWhite(): ?Player
     {
@@ -95,4 +99,5 @@ class TournamentMatch
 
         return $this;
     }
+
 }

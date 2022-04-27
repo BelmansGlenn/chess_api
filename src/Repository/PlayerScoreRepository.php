@@ -3,9 +3,11 @@
 namespace App\Repository;
 
 use App\Entity\PlayerScore;
+use App\Repository\Interface\SearchInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\OptimisticLockException;
 use Doctrine\ORM\ORMException;
+use Doctrine\ORM\Query\ResultSetMapping;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -14,7 +16,7 @@ use Doctrine\Persistence\ManagerRegistry;
  * @method PlayerScore[]    findAll()
  * @method PlayerScore[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
-class PlayerScoreRepository extends ServiceEntityRepository
+class PlayerScoreRepository extends ServiceEntityRepository implements SearchInterface
 {
     public function __construct(ManagerRegistry $registry)
     {
@@ -73,4 +75,79 @@ class PlayerScoreRepository extends ServiceEntityRepository
         ;
     }
     */
+
+    public function search($term, $order, $limit, $offset, $fields = [])
+    {
+        $qb = $this
+            ->createQueryBuilder('p');
+        if (count($fields) > 0) {
+            foreach ($fields as $key => $value) {
+                if ($key === 'id')
+                {
+                        $qb->andWhere("p.TournamentId = :val")
+                        ->setParameter("val", $value);
+                }else{
+
+                    $qb->andWhere("p.$key = :key");
+                    $qb->setParameter("key", $value);
+                }
+            }
+        }
+        $qb->orderBy('p.id', $order)
+            ->setFirstResult($offset-1)
+            ->setMaxResults($limit);
+        return $qb->getQuery()->getResult();
+
+    }
+
+    public function countValue($fields = [])
+    {
+        $qb = $this
+            ->createQueryBuilder('p')
+            ->select('count(p.id)');
+
+        if (count($fields) > 0) {
+            foreach ($fields as $key => $value) {
+                if ($key === 'id')
+                {
+                    $qb->andWhere("p.TournamentId = :val")
+                        ->setParameter("val", $value);
+                }else{
+
+                    $qb->andWhere("p.$key = :key");
+                    $qb->setParameter("key", $value);
+                }
+            }
+        }
+        return $qb->getQuery()->getSingleScalarResult();
+    }
+
+
+
+    public function findTournamentPreviousRound($round, $tournamentId)
+    {
+        $qb = $this
+            ->createQueryBuilder('p')
+            ->andWhere('p.round = :val')
+            ->setParameter('val', $round)
+            ->andWhere('p.TournamentId = :id')
+            ->setParameter('id', $tournamentId);
+
+        return $qb->getQuery()->getResult();
+    }
+
+    public function findPlayerByIdAndPreviousRound($playerId,$round, $tournamentId)
+    {
+        $qb = $this
+            ->createQueryBuilder('p')
+            ->andWhere('p.player = :id')
+            ->setParameter('id', $playerId)
+            ->andWhere('p.round = :val')
+            ->setParameter('val', $round)
+            ->andWhere("p.TournamentId = :tid")
+            ->setParameter('tid', $tournamentId);
+
+
+        return $qb->getQuery()->getOneOrNullResult();
+    }
 }
