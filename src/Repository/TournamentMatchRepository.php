@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\TournamentMatch;
+use App\Repository\Interface\SearchInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\OptimisticLockException;
 use Doctrine\ORM\ORMException;
@@ -14,7 +15,7 @@ use Doctrine\Persistence\ManagerRegistry;
  * @method TournamentMatch[]    findAll()
  * @method TournamentMatch[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
-class TournamentMatchRepository extends ServiceEntityRepository
+class TournamentMatchRepository extends ServiceEntityRepository implements SearchInterface
 {
     public function __construct(ManagerRegistry $registry)
     {
@@ -73,4 +74,71 @@ class TournamentMatchRepository extends ServiceEntityRepository
         ;
     }
     */
+
+    public function search($term, $order, $limit, $offset, $fields = [])
+    {
+        $qb = $this
+            ->createQueryBuilder('t');
+             if (count($fields) > 0) {
+                 foreach ($fields as $key => $value) {
+                     if ($key === 'id')
+                     {
+                         $qb->leftJoin('t.tournament', 'tournament')
+                             ->andWhere("tournament.$key = :val")
+                             ->setParameter("val", $value);
+                     }else{
+
+                     $qb->andWhere("t.$key = :key");
+                     $qb->setParameter("key", $value);
+                     }
+                 }
+             }
+            $qb->orderBy('t.id', $order)
+            ->setFirstResult($offset-1)
+            ->setMaxResults($limit);
+        return $qb->getQuery()->getResult();
+
+    }
+
+    public function countValue($fields = [])
+    {
+        $qb = $this
+            ->createQueryBuilder('t')
+            ->select('count(t.id)');
+
+        if (count($fields) > 0) {
+            foreach ($fields as $key => $value) {
+                if ($key === 'id')
+                {
+                    $qb->leftJoin('t.tournament', 'tournament')
+                        ->andWhere("tournament.$key = :val")
+                        ->setParameter("val", $value);
+                }else{
+
+                $qb->andWhere("t.$key = :key");
+                $qb->setParameter("key", $value);
+                }
+            }
+        }
+        return $qb->getQuery()->getSingleScalarResult();
+    }
+
+    public function findTournamentMatchCurrentRound($round, $tournamentId)
+    {
+        $qb = $this
+            ->createQueryBuilder('t')
+            ->andWhere('t.round = :val')
+            ->setParameter('val', $round)
+            ->leftJoin('t.tournament', 'tournament')
+            ->andWhere("tournament.id = :id")
+            ->setParameter("id", $tournamentId)
+            ->leftJoin('t.white', 'white')
+            ->addSelect('white')
+            ->leftJoin('t.black', 'black')
+            ->addSelect('black');
+
+        return $qb->getQuery()->getResult();
+    }
+
+
 }

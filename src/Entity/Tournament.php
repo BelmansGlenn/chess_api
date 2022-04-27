@@ -59,10 +59,17 @@ class Tournament
     #[ORM\OneToMany(mappedBy: 'tournament', targetEntity: TournamentMatch::class)]
     private $tournamentMatches;
 
+    #[ORM\OneToMany(mappedBy: 'tournament', targetEntity: PlayerScore::class)]
+    private $playerScores;
+
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private $maxRound;
+
     public function __construct()
     {
         $this->players = new ArrayCollection();
         $this->tournamentMatches = new ArrayCollection();
+        $this->playerScores = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -232,6 +239,50 @@ class Tournament
                 $tournamentMatch->setTournament(null);
             }
         }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, PlayerScore>
+     */
+    public function getPlayerScores(): Collection
+    {
+        return $this->playerScores;
+    }
+
+    public function addPlayerScore(PlayerScore $playerScore): self
+    {
+        if (!$this->playerScores->contains($playerScore)) {
+            $this->playerScores[] = $playerScore;
+            $playerScore->setTournament($this);
+        }
+
+        return $this;
+    }
+
+    public function removePlayerScore(PlayerScore $playerScore): self
+    {
+        if ($this->playerScores->removeElement($playerScore)) {
+            // set the owning side to null (unless already changed)
+            if ($playerScore->getTournament() === $this) {
+                $playerScore->setTournament(null);
+            }
+        }
+
+        return $this;
+    }
+    public function getMaxRound() : int
+    {
+        if($this->players->count() % 2 === 0) {
+            return $this->players->count() - 1;
+        }
+        return $this->players->count();
+    }
+
+    public function setMaxRound(?int $maxRound): self
+    {
+        $this->maxRound = $maxRound;
 
         return $this;
     }

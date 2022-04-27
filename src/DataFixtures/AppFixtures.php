@@ -18,6 +18,12 @@ class AppFixtures extends Fixture
         TournamentFactory::createMany(30,[
             'isFinished' => true
         ]);
+        TournamentFactory::createOne([
+            'players' => PlayerFactory::createMany(10)
+        ]);
+        TournamentFactory::createOne([
+            'players' => PlayerFactory::createMany(4)
+        ]);
 
 
         $manager->flush();

@@ -2,8 +2,12 @@
 
 namespace App\Controller;
 
+use App\DTO\TournamentMatch\TournamentMatchDTOUpdate;
+use App\Entity\MatchResultEnum;
 use App\Entity\Tournament;
+use App\Entity\TournamentMatch;
 use App\Exception\CustomBadRequestException;
+use App\Exception\RouteNotFoundException;
 use App\Exception\RulesTournamentException;
 use App\Service\Controller\TournamentControllerService;
 use App\Service\Violations\ViolationsService;
@@ -20,6 +24,7 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Validator\ConstraintViolationList;
 
@@ -138,7 +143,93 @@ class TournamentController extends AbstractFOSRestController
 
     }
 
+    #[Get('/api/tournament/{tournamentId}/start', name: 'app_tournament_start')]
+    #[View(statusCode: 201)]
+    public function startTournament($tournamentId, Request $request, ParamFetcherInterface $paramFetcher)
+    {
+        try {
+            $tournament = $this->checkViolations->checkIfExist($tournamentId, Tournament::class);
+            $this->tournamentControllerService->startTournament($tournament, $paramFetcher, $request);
+        }catch (CustomBadRequestException $e)
+        {
+            throw new BadRequestException($e);
+        }catch (RulesTournamentException $e)
+        {
+            throw new AccessDeniedException($e);
+        }
+    }
 
+    #[Get('/api/tournament/{tournamentId}/round', name: 'app_tournament_round')]
+    #[QueryParam(name: "keyword",requirements: "\d+", default: "1", description: "the keyword to search for")]
+    #[QueryParam(name: "order",requirements: "asc|desc", default: "asc", description: "Sort order (asc or desc)")]
+    #[QueryParam(name: "limit",requirements: "\d+", default: "5", description: "Max number of articles per page")]
+    #[QueryParam(name: "offset",requirements: "\d+", default: "1", description: "the pagination offset")]
+    #[View(statusCode: 200)]
+    public function roundTournament($tournamentId, ParamFetcherInterface $paramFetcher, Request $request)
+    {
+        try {
+            $this->checkViolations->checkIfExist($tournamentId, Tournament::class);
+            return $this->tournamentControllerService->roundTournament($paramFetcher, $request, $tournamentId);
+        }catch(CustomBadRequestException $e)
+        {
+            throw new BadRequestException($e);
+        }
+    }
+
+    #[Patch('/api/tournament/{tournamentId}/update_result', name: 'app_tournament_update_match')]
+    #[ParamConverter("tournamentMatchDTO", converter: "fos_rest.request_body")]
+    #[View(statusCode: 200)]
+    public function updateResultTournamentMatch($tournamentId, TournamentMatchDTOUpdate $tournamentMatchDTO)
+    {
+        try {
+        $tournament = $this->checkViolations->checkIfExist($tournamentId, Tournament::class);
+        $tournamentMatch = $this->checkViolations->checkIfExist($tournamentMatchDTO->getMatchId(), TournamentMatch::class);
+        return $this->tournamentControllerService->updateResultTournamentMatch(
+            $tournamentMatchDTO->getResult(), $tournament, $tournamentMatch
+        );
+        }catch(CustomBadRequestException $e)
+        {
+            throw new BadRequestException($e);
+        }catch (RouteNotFoundException $e)
+        {
+            throw new NotFoundHttpException($e);
+        }
+
+    }
+
+
+    #[Get('/api/tournament/{tournamentId}/next', name: 'app_tournament_next_round')]
+    #[View(statusCode: 200)]
+    public function nextRoundTournamentMatch($tournamentId)
+    {
+        try {
+            $tournament = $this->checkViolations->checkIfExist($tournamentId, Tournament::class);
+            $this->tournamentControllerService->nextRoundTournamentMatch($tournament);
+        }catch (CustomBadRequestException $e)
+        {
+            throw new BadRequestException($e);
+        }catch (RulesTournamentException $e)
+        {
+            throw new AccessDeniedException($e);
+        }
+    }
+
+    #[Get('/api/tournament/{tournamentId}/score')]
+    #[QueryParam(name: "keyword",requirements: "\d+", default: "1", description: "the keyword to search for")]
+    #[QueryParam(name: "order",requirements: "asc|desc", default: "asc", description: "Sort order (asc or desc)")]
+    #[QueryParam(name: "limit",requirements: "\d+", default: "5", description: "Max number of articles per page")]
+    #[QueryParam(name: "offset",requirements: "\d+", default: "1", description: "the pagination offset")]
+    #[View(statusCode: 200)]
+    public function scorePerRound($tournamentId, ParamFetcherInterface $paramFetcher, Request $request)
+    {
+        try {
+            $tournament = $this->checkViolations->checkIfExist($tournamentId, Tournament::class);
+            return $this->tournamentControllerService->scorePerRound($paramFetcher, $request, $tournament);
+        }catch(CustomBadRequestException $e)
+        {
+            throw new BadRequestException($e);
+        }
+    }
 
 
 }
