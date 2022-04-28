@@ -36,5 +36,15 @@ class EntityManagerService
         $this->entityManager->flush();
     }
 
+    public function flush()
+    {
+        $this->entityManager->flush();
+    }
+
+    public function persist($object)
+    {
+        $this->entityManager->persist($object);
+    }
+
 
 }

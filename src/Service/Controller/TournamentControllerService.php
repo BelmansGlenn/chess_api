@@ -97,7 +97,7 @@ class TournamentControllerService
         $this->tournamentEntityService->removePlayerFromTournament($player, $tournament);
     }
 
-    public function startTournament(Tournament $tournament, $paramFetcher, $request)
+    public function startTournament(Tournament $tournament)
     {
         try {
                 $this->tournamentService->canStart($tournament);
@@ -108,8 +108,9 @@ class TournamentControllerService
                 $tournamentMatch = $this->tournamentService->createTournamentMatches($players, $tournament, $count);
                 foreach ($tournamentMatch as $match)
                 {
-                $this->entityManagerService->create($match);
+                $this->entityManagerService->persist($match);
                 }
+                $this->entityManagerService->flush();
 
         }catch (RulesTournamentException $e)
         {
@@ -146,16 +147,13 @@ class TournamentControllerService
 
     public function nextRoundTournamentMatch(Tournament $tournament)
     {
+        try {
 
             if ($tournament->getCurrentRound() < $tournament->getMaxRound()) {
                 $tournamentMatchCurrentRound = $this->tournamentMatchRepository->findTournamentMatchCurrentRound($tournament->getCurrentRound(), $tournament->getId());
-                foreach ($tournamentMatchCurrentRound as $currentRound)
-                {
-                    if ($currentRound->getResult() == MatchResultEnum::NOT_PLAYED)
-                    {
-                        throw new RulesTournamentException('Cannot go to the next round before every match of the round has been played.');
-                    }
-                }
+
+                $this->tournamentService->isAllMatchPlayed($tournamentMatchCurrentRound);
+
                 $tournamentMatchPreviousRound = null;
 
                 if ($tournament->getCurrentRound() > 1)
@@ -174,10 +172,11 @@ class TournamentControllerService
                 {
                     foreach ($score as $playerScore)
                     {
-                        $this->entityManagerService->create($playerScore);
+                        $this->entityManagerService->persist($playerScore);
 
                     }
                 }
+                $this->entityManagerService->flush();
 
                 $tournament->setCurrentRound($tournament->getCurrentRound() + 1);
                 $this->entityManagerService->update();
@@ -194,6 +193,14 @@ class TournamentControllerService
                 $tournament->setIsFinished(true);
                 $this->entityManagerService->update();
             }
+        }catch(RulesTournamentException $e)
+        {
+            throw new RulesTournamentException($e);
+        }catch (CustomBadRequestException $e)
+        {
+            throw new CustomBadRequestException($e);
+        }
+
 
 
     }

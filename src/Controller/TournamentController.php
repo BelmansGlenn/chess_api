@@ -145,11 +145,11 @@ class TournamentController extends AbstractFOSRestController
 
     #[Get('/api/tournament/{tournamentId}/start', name: 'app_tournament_start')]
     #[View(statusCode: 201)]
-    public function startTournament($tournamentId, Request $request, ParamFetcherInterface $paramFetcher)
+    public function startTournament($tournamentId)
     {
         try {
             $tournament = $this->checkViolations->checkIfExist($tournamentId, Tournament::class);
-            $this->tournamentControllerService->startTournament($tournament, $paramFetcher, $request);
+            $this->tournamentControllerService->startTournament($tournament);
         }catch (CustomBadRequestException $e)
         {
             throw new BadRequestException($e);
