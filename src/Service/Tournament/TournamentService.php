@@ -259,5 +259,17 @@ class TournamentService
     }
 
 
+    public function isAllMatchPlayed($tournamentMatchCurrentRound)
+    {
+        foreach ($tournamentMatchCurrentRound as $currentRound)
+        {
+            if ($currentRound->getResult() == MatchResultEnum::NOT_PLAYED)
+            {
+                throw new RulesTournamentException('Cannot go to the next round before every match of the round has been played.');
+            }
+        }
+    }
+
+
 
 }
